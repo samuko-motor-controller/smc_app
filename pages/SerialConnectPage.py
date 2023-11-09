@@ -28,11 +28,14 @@ class SerialConnectFrame(tb.Frame):
     self.frame = tb.LabelFrame(self, borderwidth=10, bootstyle='primary')
 
     #create widgets to be added to frame
-    self.selectPort = SelectValueFrame(self.frame, keyTextInit="PORT: ", valTextInit="None",
-                                       initialComboValues=self.refreshPortlist())
+    self.selectPort = SelectValueFrame(self.frame, keyTextInit="PORT: ", valTextInit=g.port,
+                                       initialComboValues=self.refreshPortlist(),
+                                       middileware_func=self.selectPortFunc)
+    
     self.connectButton = tb.Button(self.frame, text="CONNECT",
                                style=buttonStyleName, padding=10, width=20,
                                command=self.connect_serial_func)
+    
     self.refreshButton = tb.Button(self.frame, text="REFRESH",
                                style=buttonStyleName, padding=10, width=20,
                                command=self.refresh_serial_func)
@@ -46,6 +49,15 @@ class SerialConnectFrame(tb.Frame):
     self.frame.place(relx=0.5, rely=0.5, anchor="center")
 
 
+  def selectPortFunc(self, port_name):
+    try:
+      if port_name:
+        g.port = port_name
+    except:
+      pass
+
+    return g.port
+  
   def refreshPortlist(self):
     try:
       port_list = [port.device for port in serial.tools.list_ports.comports()]

@@ -17,11 +17,11 @@ class I2CSetupFrame(tb.Frame):
 
     #create widgets to be added to frame
     g.i2cAddress = int(g.serClient.get("i2c"))
-    self.setI2c = SetValueFrame(self.frame, keyTextInit="I2C_ADDRESS: ", valTextInit=g.i2cAddress,
-                                middleware_func=self.setI2Caddress)
+    self.setI2Caddress = SetValueFrame(self.frame, keyTextInit="I2C_ADDRESS: ", valTextInit=g.i2cAddress,
+                                middleware_func=self.setI2CaddressFunc)
 
     #add framed widgets to frame
-    self.setI2c.pack(side='top', expand=True, fill="both")
+    self.setI2Caddress.pack(side='top', expand=True, fill="both")
 
 
     #add label and frame to I2CSetupFrame
@@ -29,7 +29,7 @@ class I2CSetupFrame(tb.Frame):
     self.frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.3)
 
 
-  def setI2Caddress(self, text):
+  def setI2CaddressFunc(self, text):
     try:
       if text:
         isSuccessful = g.serClient.send("i2c", float(text))

@@ -6,11 +6,13 @@ from ttkbootstrap.constants import *
 
 
 class SelectValueFrame(tb.LabelFrame):
-  def __init__(self, parentFrame, keyTextInit, valTextInit, initialComboValues=["None"]):
+  def __init__(self, parentFrame, keyTextInit, valTextInit, initialComboValues=["None"], middileware_func=None):
     super().__init__(master=parentFrame, borderwidth=5, bootstyle='secondary')
 
     self.comboArrVal = initialComboValues
     self.comboVal = valTextInit
+
+    self.middleware_func = middileware_func
 
     self.selected_val = tb.StringVar()
 
@@ -29,7 +31,7 @@ class SelectValueFrame(tb.LabelFrame):
                           values=self.comboArrVal,
                           textvariable=self.selected_val)
     self.combobox.set(self.comboVal)
-    self.combobox.bind('<<ComboboxSelected>>', self.set_data_func)
+    self.combobox.bind('<<ComboboxSelected>>', self.onSelect)
     
 
 
@@ -55,10 +57,16 @@ class SelectValueFrame(tb.LabelFrame):
     value = self.selected_val.get()
     return value
 
-  def set_data_func(self, event):
-    value = self.selected_val.get()
-    self.valText.configure(text=value)
-    self.combobox.set(value)
+
+  def onSelect(self, event):
+    entryValue = self.selected_val.get()
+    self.combobox.set(entryValue)
+
+    if self.middleware_func == None:
+      self.valText.configure(text="null")
+    else:
+      updatedValue = self.middleware_func(entryValue)
+      self.valText.configure(text=str(updatedValue))
 
 
 
