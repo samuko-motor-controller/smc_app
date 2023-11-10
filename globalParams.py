@@ -10,17 +10,22 @@ class g():
 
   i2cAddress = None
 
-  testPwmA = 0 
-  testDurationA = durationList[1]
-  initialThetaA = -90
-  thetaA = 0.0
+  #### motorA is index 0 and motorB is index 1 ##########
+  motorLabel = ['A', 'B']
 
-  pulsePerRevA = 1
-  dirConfigA = 1
-  dirConfigTextA = dirConfigTextList[0]
+  motorTestPwm = [0, 0] 
+  motorTestDuration = [durationList[1], durationList[1]]
+  
+  motorInitialTheta = [-90, -90]
+  motorTheta = [0.0, 0.0]
 
-  motorAOnStartTime = time.time()
-  motorAIsOn = False
+  motorPPR = [1, 1]
+  motorDirConfig = [1, 1]
+  motorDirConfigText = [dirConfigTextList[0], dirConfigTextList[1]]
 
-  angPosA = 0.0
-  angVelA = 0.0
+  motorStartTime = [time.time(), time.time()]
+  motorIsOn = [False, False]
+
+  motorAngPos = [0.0, 0.0]
+  motorAngVel = [0.0, 0.0]
+  #######################################################

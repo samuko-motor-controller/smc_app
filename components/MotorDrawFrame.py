@@ -11,8 +11,10 @@ from globalParams import g
 
 
 class MotorDrawFrame(tb.Frame):
-  def __init__(self, parentFrame):
+  def __init__(self, parentFrame, motorNo):
     super().__init__(master=parentFrame)
+
+    self.motorNo = motorNo
 
     self.displayFrame = tb.Frame(self)
     self.canvasFrame = tb.Frame(self)
@@ -26,11 +28,13 @@ class MotorDrawFrame(tb.Frame):
     buttonStyleName = 'danger.TButton'
     buttonStyle.configure(buttonStyleName, font=('Monospace',10, 'bold'))
 
+    g.motorAngPos[self.motorNo], g.motorAngVel[self.motorNo] = g.serClient.get(f'data{g.motorLabel[self.motorNo]}')
+
     self.posText = tb.Label(self.textFrame1, text="POS(rad):", font=('Monospace',10, 'bold') ,bootstyle="danger")
-    self.posVal = tb.Label(self.textFrame1, text="3.142", font=('Monospace',10), bootstyle="dark")
+    self.posVal = tb.Label(self.textFrame1, text=g.motorAngPos[self.motorNo], font=('Monospace',10), bootstyle="dark")
 
     self.velText = tb.Label(self.textFrame2, text="VEL(rad/s):", font=('Monospace',10, 'bold') ,bootstyle="primary")
-    self.velVal = tb.Label(self.textFrame2, text="6.284", font=('Monospace',10), bootstyle="dark")
+    self.velVal = tb.Label(self.textFrame2, text=g.motorAngVel[self.motorNo], font=('Monospace',10), bootstyle="dark")
 
     self.button1 = tb.Button(self.displayFrame, text="RESET HAND", style=buttonStyleName,
                              command=self.resetInitialTheta)
@@ -62,8 +66,8 @@ class MotorDrawFrame(tb.Frame):
     self.m = (320, 180) #x, y primary "#4582EC" danger "#D9534F"
     self.circle = self.canvas.create_oval(152, 12, 488, 348, outline="#ADB5BD", width=5)
     self.line = self.canvas.create_line(self.m[0], self.m[1], 
-                                  self.m[0]+self.r*cos(radians(-1*(g.thetaA-g.initialThetaA))), 
-                                  self.m[1]+self.r*sin(radians(-1*(g.thetaA-g.initialThetaA))), 
+                                  self.m[0]+self.r*cos(radians(-1*(g.motorTheta[self.motorNo]-g.motorInitialTheta[self.motorNo]))), 
+                                  self.m[1]+self.r*sin(radians(-1*(g.motorTheta[self.motorNo]-g.motorInitialTheta[self.motorNo]))), 
                                   fill='#4582EC',width=10)
     self.mid_circle = self.canvas.create_oval(300, 160, 340, 200, fill="#D9534F", outline="#4582EC", width=7)
 
@@ -78,17 +82,21 @@ class MotorDrawFrame(tb.Frame):
 
 
   def sendPwmCtrl(self):
-    if g.motorAIsOn:
+    if g.motorIsOn[self.motorNo]:
       isSuccess = g.serClient.send("pwm", 0, 0)
       if isSuccess:
-        g.motorAIsOn = False
+        g.motorIsOn[self.motorNo] = False
         self.button2.configure(text="START MOTOR")
         # print('Motor off', isSuccess)
     else:
-      isSuccess = g.serClient.send("pwm", g.testPwmA, 0)
+      if self.motorNo == 0:
+        isSuccess = g.serClient.send("pwm", g.motorTestPwm[self.motorNo], 0)
+      elif self.motorNo == 1:
+        isSuccess = g.serClient.send("pwm", 0, g.motorTestPwm[self.motorNo])
+
       if isSuccess:
-        g.motorAIsOn = True
-        g.motorAOnStartTime = time.time()
+        g.motorIsOn[self.motorNo] = True
+        g.motorStartTime[self.motorNo] = time.time()
         self.button2.configure(text="STOP MOTOR")
         # print('Motor On', isSuccess)
 
@@ -96,10 +104,10 @@ class MotorDrawFrame(tb.Frame):
 
 
   def draw_motor_ang_pos(self):
-    if g.motorAIsOn and g.testDurationA < time.time()-g.motorAOnStartTime:
+    if g.motorIsOn[self.motorNo] and g.motorTestDuration[self.motorNo] < time.time()-g.motorStartTime[self.motorNo]:
         isSuccess = g.serClient.send("pwm", 0, 0)
         if isSuccess:
-          g.motorAIsOn = False
+          g.motorIsOn[self.motorNo] = False
           self.button2.configure(text="START MOTOR")
           # print('Motor off', isSuccess)
 
@@ -107,35 +115,35 @@ class MotorDrawFrame(tb.Frame):
     self.canvas.delete(self.mid_circle)
 
     try:
-      g.angPosA, g.angVelA = g.serClient.get("dataA")
+      g.motorAngPos[self.motorNo], g.motorAngVel[self.motorNo] = g.serClient.get(f'data{g.motorLabel[self.motorNo]}')
     except:
       pass
 
-    g.thetaA = round(self.absAngDeg(g.angPosA),2)
+    g.motorTheta[self.motorNo] = round(self.absAngDeg(g.motorAngPos[self.motorNo]),2)
 
-    if int(g.dirConfigA) == -1:
+    if int(g.motorDirConfig[self.motorNo]) == -1:
       self.line = self.canvas.create_line(self.m[0], self.m[1], 
-                                    self.m[0]+self.r*cos(radians(g.thetaA-g.initialThetaA)), 
-                                    self.m[1]+self.r*sin(radians(g.thetaA-g.initialThetaA)),  
+                                    self.m[0]+self.r*cos(radians(g.motorTheta[self.motorNo]-g.motorInitialTheta[self.motorNo])), 
+                                    self.m[1]+self.r*sin(radians(g.motorTheta[self.motorNo]-g.motorInitialTheta[self.motorNo])), 
                                     fill='#4582EC',width=10)
-    elif int(g.dirConfigA) == 1:
+    elif int(g.motorDirConfig[self.motorNo]) == 1:
       self.line = self.canvas.create_line(self.m[0], self.m[1], 
-                                    self.m[0]+self.r*cos(radians(-1*(g.thetaA-g.initialThetaA))), 
-                                    self.m[1]+self.r*sin(radians(-1*(g.thetaA-g.initialThetaA))),  
+                                    self.m[0]+self.r*cos(radians(-1*(g.motorTheta[self.motorNo]-g.motorInitialTheta[self.motorNo]))), 
+                                    self.m[1]+self.r*sin(radians(-1*(g.motorTheta[self.motorNo]-g.motorInitialTheta[self.motorNo]))),   
                                     fill='#4582EC',width=10)
     self.mid_circle = self.canvas.create_oval(300, 160, 340, 200, fill="#D9534F", outline="#4582EC", width=7)
 
-    self.posVal.configure(text=f"{g.angPosA}")
-    self.velVal.configure(text=f"{g.angVelA}")
+    self.posVal.configure(text=f"{g.motorAngPos[self.motorNo]}")
+    self.velVal.configure(text=f"{g.motorAngVel[self.motorNo]}")
 
     self.canvas.after(1, self.draw_motor_ang_pos)
 
 
   def resetInitialTheta(self):
-    if int(g.dirConfigA) == 1:
-      g.initialThetaA = g.thetaA - 90
-    elif int(g.dirConfigA) == -1:
-      g.initialThetaA = g.thetaA + 90
+    if int(g.motorDirConfig[self.motorNo]) == 1:
+      g.motorInitialTheta[self.motorNo] = g.motorTheta[self.motorNo] - 90
+    elif int(g.motorDirConfig[self.motorNo]) == -1:
+      g.motorInitialTheta[self.motorNo] = g.motorTheta[self.motorNo] + 90
 
   def absAngDeg(self, incAngRad):
     incAngDeg = incAngRad * 180.0 / pi

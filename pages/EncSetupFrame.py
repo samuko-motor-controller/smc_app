@@ -13,10 +13,12 @@ from components.MotorDrawFrame import MotorDrawFrame
 
 
 class EncSetupFrame(tb.Frame):
-  def __init__(self, parentFrame):
+  def __init__(self, parentFrame, motorNo):
     super().__init__(master=parentFrame)
 
-    self.label = tb.Label(self, text="MOTOR A ENCODER SETUP", font=('Monospace',16, 'bold') ,bootstyle="dark")
+    self.motorNo = motorNo
+
+    self.label = tb.Label(self, text=f"MOTOR {g.motorLabel[self.motorNo]} ENCODER SETUP", font=('Monospace',16, 'bold') ,bootstyle="dark")
 
     self.frame1 = tb.Frame(self)
     self.frame2 = tb.Frame(self)
@@ -25,18 +27,18 @@ class EncSetupFrame(tb.Frame):
     self.frame1.grid_columnconfigure((0,1,2,3), weight=1, uniform='a')
 
     #create widgets to be added to frame1
-    g.pulsePerRevA = g.serClient.get("pprA")
-    self.setPulsePerRev = SetValueFrame(self.frame1, keyTextInit="PPR_A: ", valTextInit=g.pulsePerRevA,
+    g.motorPPR[self.motorNo] = g.serClient.get(f'ppr{g.motorLabel[self.motorNo]}')
+    self.setPulsePerRev = SetValueFrame(self.frame1, keyTextInit=f"PPR_{g.motorLabel[self.motorNo]}: ", valTextInit=g.motorPPR[self.motorNo],
                                         middleware_func=self.setPulsePerRevFunc)
     
     self.initDirConfigA()
-    self.selectDirConfig = SelectValueFrame(self.frame1, keyTextInit="DIR_A: ", valTextInit=g.dirConfigTextA,
+    self.selectDirConfig = SelectValueFrame(self.frame1, keyTextInit=f"DIR_{g.motorLabel[self.motorNo]}: ", valTextInit=g.motorDirConfigText[self.motorNo],
                                             initialComboValues=g.dirConfigTextList, middileware_func=self.selectDirConfigFunc)
     
-    self.setTestPwm = SetValueFrame(self.frame1, keyTextInit="TEST_PWM: ", valTextInit=g.testPwmA,
+    self.setTestPwm = SetValueFrame(self.frame1, keyTextInit="TEST_PWM: ", valTextInit=g.motorTestPwm[self.motorNo],
                                     middleware_func=self.setTestPwmFunc)
     
-    self.selectDuration = SelectValueFrame(self.frame1, keyTextInit="TEST_TIME(sec): ", valTextInit=g.testDurationA,
+    self.selectDuration = SelectValueFrame(self.frame1, keyTextInit="TEST_TIME(sec): ", valTextInit=g.motorTestDuration[self.motorNo],
                                            initialComboValues=g.durationList, middileware_func=self.selectDurationFunc)
 
     #add framed widgets to frame1
@@ -46,7 +48,7 @@ class EncSetupFrame(tb.Frame):
     self.selectDuration.grid(row=0, column=3, sticky='nsew', padx=5)
 
     #create widgets to be added to frame2
-    self.drawMotor = MotorDrawFrame(self.frame2)
+    self.drawMotor = MotorDrawFrame(self.frame2, motorNo=self.motorNo)
 
     #add framed widgets to frame2
     self.drawMotor.pack(side="left", expand=True, fill="both", padx=5)
@@ -65,15 +67,15 @@ class EncSetupFrame(tb.Frame):
       if pwm_val_str:
         val = int(pwm_val_str)
         if val > 255:
-          g.testPwmA = 255
+          g.motorTestPwm[self.motorNo] = 255
         elif val < -255:
-          g.testPwmA = -255
+          g.motorTestPwm[self.motorNo] = -255
         else:
-          g.testPwmA = val
+          g.motorTestPwm[self.motorNo] = val
     except:
       pass
 
-    return g.testPwmA
+    return g.motorTestPwm[self.motorNo]
     
 
 
@@ -81,13 +83,13 @@ class EncSetupFrame(tb.Frame):
     try:
       if ppr_val_str:
         val = float(ppr_val_str)
-        isSuccessful = g.serClient.send("pprA", val)
-        val = g.serClient.get("pprA")
-        g.pprA = val
+        isSuccessful = g.serClient.send(f'ppr{g.motorLabel[self.motorNo]}', val)
+        val = g.serClient.get(f'ppr{g.motorLabel[self.motorNo]}')
+        g.motorPPR[self.motorNo] = val
     except:
       pass
 
-    return g.pprA
+    return g.motorPPR[self.motorNo]
 
   
 
@@ -95,21 +97,21 @@ class EncSetupFrame(tb.Frame):
     try:
       if duration_val_str:
         val = int(duration_val_str)
-        g.testDurationA = val
+        g.motorTestDuration[self.motorNo] = val
     except:
       pass
 
-    return g.testDurationA
+    return g.motorTestDuration[self.motorNo]
   
 
 
   def initDirConfigA(self):
     try:
-      g.dirConfigA = g.serClient.get("rdirA")
-      if int(g.dirConfigA) == 1:
-        g.dirConfigTextA = g.dirConfigTextList[0]
-      elif int(g.dirConfigA) == -1:
-        g.dirConfigTextA = g.dirConfigTextList[1]
+      g.motorDirConfig[self.motorNo] = g.serClient.get(f'rdir{g.motorLabel[self.motorNo]}')
+      if int(g.motorDirConfig[self.motorNo]) == 1:
+        g.motorDirConfigText[self.motorNo] = g.dirConfigTextList[0]
+      elif int(g.motorDirConfig[self.motorNo]) == -1:
+        g.motorDirConfigText[self.motorNo] = g.dirConfigTextList[1]
       self.resetInitialTheta()
     except:
       pass
@@ -119,26 +121,29 @@ class EncSetupFrame(tb.Frame):
   def selectDirConfigFunc(self, dir_val_str):
     try:
       if dir_val_str:
-        g.dirConfigTextA = dir_val_str
+        g.motorDirConfigText[self.motorNo] = dir_val_str
 
-        if g.dirConfigTextA == g.dirConfigTextList[0]:
-          isSuccessful = g.serClient.send("rdirA", 1.00)
-          g.dirConfigA = g.serClient.get("rdirA")
-          g.initialThetaA = -1*g.thetaA - 90
-        elif g.dirConfigTextA == g.dirConfigTextList[1]:
-          isSuccessful = g.serClient.send("rdirA", -1.00)
-          g.dirConfigA = g.serClient.get("rdirA")
-          g.initialThetaA = -1*g.thetaA + 90
+        if g.motorDirConfigText[self.motorNo] == g.dirConfigTextList[0]:
+          isSuccessful = g.serClient.send(f'rdir{g.motorLabel[self.motorNo]}', 1.00)
+          g.motorDirConfig[self.motorNo] = g.serClient.get(f'rdir{g.motorLabel[self.motorNo]}')
+          g.motorInitialTheta[self.motorNo] = -1*g.motorTheta[self.motorNo] - 90
+          
+        elif g.motorDirConfigText[self.motorNo] == g.dirConfigTextList[1]:
+          isSuccessful = g.serClient.send(f'rdir{g.motorLabel[self.motorNo]}', -1.00)
+          g.motorDirConfig[self.motorNo] = g.serClient.get(f'rdir{g.motorLabel[self.motorNo]}')
+          g.motorInitialTheta[self.motorNo] = -1*g.motorTheta[self.motorNo] + 90
+        
+        
 
     except:
       pass
 
-    return g.dirConfigTextA
+    return g.motorDirConfigText[self.motorNo]
 
 
 
   def resetInitialTheta(self):
-    if int(g.dirConfigA) == 1:
-      g.initialThetaA = g.thetaA - 90
-    elif int(g.dirConfigA) == -1:
-      g.initialThetaA = g.thetaA + 90
+    if int(g.motorDirConfig[self.motorNo]) == 1:
+      g.motorInitialTheta[self.motorNo] = g.motorTheta[self.motorNo] - 90
+    elif int(g.motorDirConfig[self.motorNo]) == -1:
+      g.motorInitialTheta[self.motorNo] = g.motorTheta[self.motorNo] + 90
