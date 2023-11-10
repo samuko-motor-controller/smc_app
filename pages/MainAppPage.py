@@ -33,13 +33,13 @@ class MainAppFrame(tb.Frame):
                              command= lambda: self.displayPage(self.button1, self.displayMotorAEncSetupPage))
     
     self.button2 = tb.Button(self.sideNavFrame, text="MOTOR A PID", style=buttonStyleName,
-                             command= lambda: self.displayPage(self.button2, self.displayPidSetupPage))
+                             command= lambda: self.displayPage(self.button2, self.displaymotorAPidSetupPage))
     
     self.button3 = tb.Button(self.sideNavFrame, text="MOTOR B ENC", style=buttonStyleName,
                              command= lambda: self.displayPage(self.button3, self.displayMotorBEncSetupPage))
     
     self.button4 = tb.Button(self.sideNavFrame, text="MOTOR B PID", style=buttonStyleName,
-                             command= lambda: self.displayPage(self.button4, self.displayPidSetupPage))
+                             command= lambda: self.displayPage(self.button4, self.displaymotorBPidSetupPage))
     
     self.button5 = tb.Button(self.sideNavFrame, text="I2C SETUP", style=buttonStyleName,
                              command= lambda: self.displayPage(self.button5, self.displayI2CSetupPage))
@@ -105,6 +105,10 @@ class MainAppFrame(tb.Frame):
     self.motorBEncSetupFrame = EncSetupFrame(self.mainContentFrame, motorNo=1)
     self.motorBEncSetupFrame.pack(side="left", expand=True, fill="both")
 
-  def displayPidSetupPage(self):
-    self.pidSetupFrame = PidSetupFrame(self.mainContentFrame)
-    self.pidSetupFrame.pack(side="left", expand=True, fill="both")
+  def displaymotorAPidSetupPage(self):
+    self.motorAPidSetupFrame = PidSetupFrame(self.mainContentFrame, motorNo=0)
+    self.motorAPidSetupFrame.pack(side="left", expand=True, fill="both")
+
+  def displaymotorBPidSetupPage(self):
+    self.motorBPidSetupFrame = PidSetupFrame(self.mainContentFrame, motorNo=1)
+    self.motorBPidSetupFrame.pack(side="left", expand=True, fill="both")
