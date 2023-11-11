@@ -39,4 +39,6 @@ class g():
   motorMaxVel = [10.0, 10.0]
   motorTargetVel = [0.0, 0.0]
   motorTestSignal = [signalList[0], signalList[0]]
+
+  motorActualVel = [0.0, 0.0]
   #######################################################

@@ -23,7 +23,6 @@ class App(tb.Window):
     self.connectToPortFrame.pack(side="left", expand=True, fill="both", pady=(0,10))
     #####################################################################################
 
-
   def startMainApp(self):
     self.delete_pages()
     self.mainAppFrame = MainAppFrame(self.windowFrame)
