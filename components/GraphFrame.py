@@ -4,7 +4,7 @@ from ttkbootstrap.constants import *
 
 import time
 
-from globalParams import g
+from globalParams import g, selectSignal
 
 
 class GraphFrame(tb.Frame):
@@ -34,8 +34,8 @@ class GraphFrame(tb.Frame):
     self.targetText = tb.Label(self.textFrame2, text="TARGET(rad/s):", font=('Monospace',10, 'bold') ,bootstyle="primary")
     self.targetVal = tb.Label(self.textFrame2, text=g.motorTargetVel[self.motorNo], font=('Monospace',10), bootstyle="dark")
 
-    self.button = tb.Button(self.displayFrame, text="START PLOT", style=buttonStyleName,
-                            )
+    self.plotButton = tb.Button(self.displayFrame, text="START PLOT", style=buttonStyleName,
+                            command=self.tryPlot)
 
     #add created widgets to displayFrame
     self.actualText.pack(side='left', fill='both')
@@ -46,7 +46,7 @@ class GraphFrame(tb.Frame):
 
     self.textFrame1.pack(side='left', expand=True, fill='both')
     self.textFrame2.pack(side='left', expand=True, fill='both')
-    self.button.pack(side='left', fill='both')
+    self.plotButton.pack(side='left', fill='both')
 
 
     #initialize graph parameters
@@ -59,12 +59,15 @@ class GraphFrame(tb.Frame):
     self.canvas.pack(side='left', expand=True, fill='both')
 
     # initialize graph display
-    self.drawGraphicalLine(self.maxYVal)
+    self.drawGraphicalLine()
 
 
     # add displayFrame and canvasFrame to GraphFrame
     self.displayFrame.pack(side='top', expand=True, fill='x', padx=10)
     self.canvasFrame.pack(side='top', expand=True, fill='both', pady=(10,0))
+
+    # start plotting process
+    self.canvas.after(1, self.plot_graph)
 
 
 
@@ -116,7 +119,7 @@ class GraphFrame(tb.Frame):
 
 
 
-  def drawGraphicalLine(self, maxYVal):
+  def drawGraphicalLine(self):
     self.deleteGraphParams(self.plotGraphBuffer)
 
     xAxisline = self.canvas.create_line(self.xStartOffsetPnt, self.h/2,
@@ -176,6 +179,157 @@ class GraphFrame(tb.Frame):
           self.canvas.delete(param)
           # root.update_idletasks()
       self.plotGraphBuffer = []
+
+
+  def tryPlot(self):
+    if self.clearPlot:
+        self.deletePlot(self.plotLineBufferA, self.plotLineBufferB)
+        self.plotButton.configure(text='START PLOT')
+        self.clearPlot = False
+        time.sleep(0.1)
+
+    elif self.doPlot:
+        self.doPlot = False 
+        # print('stop plot')
+    else:
+        self.doPlot = True 
+        self.doPlotTime = time.time()
+        # print('start plot')
+
+
+  def deletePlot(self, linesA, linesB):
+      for lineA in linesA:
+          self.canvas.delete(lineA)
+          # root.update_idletasks()
+      for lineB in linesB:
+          self.canvas.delete(lineB)
+          # root.update_idletasks()
+      self.plotLineBufferA = []
+      self.plotLineBufferB = []
+
+
+  def plot_graph(self):
+      if self.doPlot and self.doPlotDuration < time.time()-self.doPlotTime:
+          if g.motorIsOn[self.motorNo]:
+            isSuccess = g.serClient.send("tag", 0, 0)
+            isSuccessful = g.serClient.send("mode", 0)
+            if isSuccess:
+              g.motorIsOn[self.motorNo] = False
+              # print('Motor off', isSuccess)
+          self.doPlot = False 
+          self.clearPlot = True
+          self.plotButton.configure(text='CLEAR PLOT')
+          self.currValA = 0.0
+          self.prevValA = 0.0
+          self.currValB = 0.0
+          self.prevValB = 0.0
+          self.currTime = 0.0
+          self.prevTime = 0.0
+          self.t = time.time()
+          # print('stop plot')
+          self.canvas.after(1, self.plot_graph)
+
+      elif self.doPlot:
+          targetVel =selectSignal(type=g.motorTestSignal[self.motorNo],
+                                  targetMax=g.motorTargetMaxVel[self.motorNo], 
+                                  duration=self.doPlotDuration, 
+                                  deltaT=time.time()-self.doPlotTime)
+          
+          if not g.motorIsOn[self.motorNo]:
+            isSuccessful = g.serClient.send("mode", 1)
+            
+            #------------------------------------------------------------------------#
+            if self.motorNo == 0:
+              isSuccess = g.serClient.send("tag", targetVel, 0)
+            elif self.motorNo == 1:
+              isSuccess = g.serClient.send("tag", 0, targetVel)
+            #------------------------------------------------------------------------#
+
+            if isSuccess:
+              g.motorIsOn[self.motorNo] = True
+              # print('Motor on', isSuccess)
+          
+          #-------------------------------------------------------------------------#
+          if self.motorNo == 0:
+            isSuccess = g.serClient.send("tag", targetVel, 0)
+          elif self.motorNo == 1:
+            isSuccess = g.serClient.send("tag", 0, targetVel)
+          #------------------------------------------------------------------------#
+
+          try:
+            g.motorTargetVel[self.motorNo], g.motorActualVel[self.motorNo] = g.serClient.get(f"pVel{g.motorLabel[self.motorNo]}")
+          except:
+            pass
+
+          self.currValA = g.motorTargetVel[self.motorNo]
+          self.currValB = g.motorActualVel[self.motorNo]
+          self.currTime = time.time()-self.t
+
+          # primary "#4582EC" danger "#D9534F"
+          lineA = self.canvas.create_line(self.xStartOffsetPnt+(self.prevTime*self.xScale),-self.yScale*self.prevValA+self.h/2,
+                                           self.xStartOffsetPnt+(self.currTime*self.xScale), -self.yScale*self.currValA+self.h/2,
+                                           fill="#4582EC", width=1)
+          lineB = self.canvas.create_line(self.xStartOffsetPnt+(self.prevTime*self.xScale),-self.yScale*self.prevValB+self.h/2,
+                                           self.xStartOffsetPnt+(self.currTime*self.xScale), -self.yScale*self.currValB+self.h/2,
+                                           fill="#D9534F", width=1)
+          
+          self.targetVal.configure(text=g.motorTargetVel[self.motorNo])
+
+          self.actualVal.configure(text=g.motorActualVel[self.motorNo])
+
+          self.plotButton.configure(text='STOP PLOT')
+
+          self.plotLineBufferA.append(lineA)
+          self.plotLineBufferB.append(lineB)
+          # root.update_idletasks()
+
+          self.prevValA = self.currValA
+          self.prevValB = self.currValB
+
+          self.prevTime = self.currTime
+          
+          self.canvas.after(1, self.plot_graph)
+
+      else:
+          if g.motorIsOn[self.motorNo]:
+            isSuccess = g.serClient.send("tag", 0, 0)
+            isSuccessful = g.serClient.send("mode", 0)
+            if isSuccess:
+              self.clearPlot = True
+              self.plotButton.configure(text='CLEAR PLOT')
+              g.motorIsOn[self.motorNo] = False
+              # print('Motor off', isSuccess)
+          self.currValA = 0.0
+          self.prevValA = 0.0
+          self.currValB = 0.0
+          self.prevValB = 0.0
+          self.currTime = 0.0
+          self.prevTime = 0.0
+          self.t = time.time()
+          self.canvas.after(1, self.plot_graph)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

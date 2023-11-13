@@ -49,7 +49,7 @@ class PidSetupFrame(tb.Frame):
     self.setMaxVel = SetValueFrame(self.frame1, keyTextInit="MAX(rad/s): ", valTextInit=g.motorMaxVel[self.motorNo],
                                     middleware_func=self.setMaxVelFunc)
     
-    self.setTargetVel = SetValueFrame(self.frame1, keyTextInit="TARGET(rad/s): ", valTextInit=g.motorTargetVel[self.motorNo],
+    self.setTargetVel = SetValueFrame(self.frame1, keyTextInit="TARGET(rad/s): ", valTextInit=g.motorTargetMaxVel[self.motorNo],
                                     middleware_func=self.setTargetVelFunc)
     
     self.selectSignal = SelectValueFrame(self.frame1, keyTextInit="TEST_SIGNAL: ", valTextInit=g.motorTestSignal[self.motorNo],
@@ -146,11 +146,11 @@ class PidSetupFrame(tb.Frame):
   def setTargetVelFunc(self, vel_val_str):
     try:
       if vel_val_str:
-        g.motorTargetVel[self.motorNo] = float(vel_val_str)
+        g.motorTargetMaxVel[self.motorNo] = float(vel_val_str)
     except:
       pass
 
-    return g.motorTargetVel[self.motorNo]
+    return g.motorTargetMaxVel[self.motorNo]
   
 
   def selectSignalFunc(self, signal_val_str):

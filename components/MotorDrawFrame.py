@@ -89,10 +89,12 @@ class MotorDrawFrame(tb.Frame):
         self.button2.configure(text="START MOTOR")
         # print('Motor off', isSuccess)
     else:
+      #---------------------------------------------------------------------#
       if self.motorNo == 0:
         isSuccess = g.serClient.send("pwm", g.motorTestPwm[self.motorNo], 0)
       elif self.motorNo == 1:
         isSuccess = g.serClient.send("pwm", 0, g.motorTestPwm[self.motorNo])
+      #---------------------------------------------------------------------#
 
       if isSuccess:
         g.motorIsOn[self.motorNo] = True
