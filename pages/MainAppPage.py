@@ -4,7 +4,7 @@ from ttkbootstrap.constants import *
 
 from pages.I2CSetupPage import I2CSetupFrame
 from pages.ResetSetupPage import ResetSetupFrame
-from pages.EncSetupFrame import EncSetupFrame
+from pages.EncSetupPage import EncSetupFrame
 from pages.PidSetupPage import PidSetupFrame
 
 
